@@ -1,0 +1,7 @@
+#!/bin/bash
+set -euo pipefail
+ROOT="$(cd "$(dirname "$0")" && pwd)"
+if [[ ! -x "$ROOT/.runtime/bin/hp-scan" ]]; then
+    bash "$ROOT/build.sh"
+fi
+exec "$ROOT/.runtime/bin/hp-scan" "$@"

@@ -1,0 +1,80 @@
+name: Build
+
+on:
+  pull_request:
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      tag_name:
+        description: Release tag to build (empty builds the triggering commit)
+        required: false
+        type: string
+    outputs:
+      artifact_name:
+        description: Name of the uploaded build artifact
+        value: ${{ jobs.build.outputs.artifact_name }}
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build and test macOS app
+    runs-on: macos-15
+    timeout-minutes: 30
+    outputs:
+      artifact_name: ${{ steps.artifact.outputs.name }}
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: "1"
+      HOMEBREW_NO_INSTALL_CLEANUP: "1"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag_name }}
+          persist-credentials: false
+
+      - name: Install build dependencies
+        run: |
+          test "$(uname -m)" = arm64
+          brew install libusb sane-backends jpeg-turbo pkgconf
+
+      - name: Build app and bundled driver
+        run: ./build.sh --driver
+
+      - name: Run tests
+        run: bash scripts/test.sh
+
+      - name: Verify app signature
+        run: codesign --verify --deep --strict "dist/HP Scan.app"
+
+      - name: Package app and corresponding sources
+        run: bash scripts/package.sh
+
+      - name: Set artifact name
+        id: artifact
+        env:
+          BUILD_REF: ${{ inputs.tag_name || github.sha }}
+        run: echo "name=hp-scan-macos-arm64-${BUILD_REF}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload build
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.artifact.outputs.name }}
+          path: |
+            dist/*.zip
+            dist/*-sources.tar.gz
+            dist/SHA256SUMS
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14
+
+      - name: Upload driver logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: driver-logs-${{ inputs.tag_name || github.sha }}
+          path: .build/*.log
+          if-no-files-found: ignore
+          retention-days: 7

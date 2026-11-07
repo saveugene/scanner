@@ -1,0 +1,6 @@
+.build/
+.runtime/
+dist/
+scans/
+__pycache__/
+.DS_Store
