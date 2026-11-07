@@ -14,13 +14,8 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  build:
-    name: Build and test
-    uses: ./.github/workflows/build.yml
-
   release-please:
     name: Release Please
-    needs: build
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -36,10 +31,9 @@ jobs:
           manifest-file: release-please-manifest.json
           config-file: release-please-config.json
 
-  build-release:
-    name: Build release tag
+  build:
+    name: Build and test
     needs: release-please
-    if: needs.release-please.outputs.release_created == 'true'
     uses: ./.github/workflows/build.yml
     with:
       tag_name: ${{ needs.release-please.outputs.tag_name }}
@@ -48,7 +42,7 @@ jobs:
     name: Upload release assets
     needs:
       - release-please
-      - build-release
+      - build
     if: needs.release-please.outputs.release_created == 'true'
     runs-on: ubuntu-latest
     permissions:
@@ -57,7 +51,7 @@ jobs:
       - name: Download release build
         uses: actions/download-artifact@v4
         with:
-          name: ${{ needs.build-release.outputs.artifact_name }}
+          name: ${{ needs.build.outputs.artifact_name }}
           path: dist
 
       - name: Upload release assets

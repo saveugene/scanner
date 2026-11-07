@@ -124,17 +124,22 @@ HPLIP and libusb archives), and `SHA256SUMS`. These builds target the runner's
 macOS version and Apple Silicon. They use the same ad-hoc signing as local builds.
 
 As in `r8s`, **Release Please** manages the release PR, changelog, and version tags.
-After a successful build on `main`, conventional commits such as `fix: ...` and
-`feat: ...` create or update a release PR. Merging it creates a GitHub Release;
-Actions then builds and tests that exact tag and attaches the ZIP, source archive,
-and checksums. Version `1.0.0` is the initial baseline. Release PRs update
-`version.txt`, both app version fields in `src/Info.plist`, and the release manifest.
+On pushes to `main`, conventional commits such as `fix: ...` and `feat: ...`
+create or update a release PR. Merging it creates a GitHub Release. Each pipeline
+run builds and tests once: the exact release tag when a release is created, or
+the triggering commit otherwise. After a successful release build, Actions
+attaches its ZIP, source archive, and checksums. Version `1.0.0` is the initial
+baseline. Release PRs update `version.txt`, both app version fields in
+`src/Info.plist`, and the release manifest.
 
 Enable **Settings → Actions → General → Workflow permissions → Allow GitHub
 Actions to create and approve pull requests** in the repository. The workflows
-use the built-in `GITHUB_TOKEN`; no extra secrets are required. GitHub does not
-start PR workflows for changes made with that token, so Release Please PRs are
-checked by the build on `main` after merging. Regular PRs run the build normally.
+use the built-in `GITHUB_TOKEN`; no extra secrets are required. GitHub requires
+manual approval for PR workflows triggered by that token. The PR build skips
+changes limited to `CHANGELOG.md`, `release-please-manifest.json`, `src/Info.plist`,
+and `version.txt`, so Release Please PRs do not create approval-blocked runs.
+These changes are checked once by the release build in the `main` pipeline after
+merging. PRs that change other files run the build normally.
 
 To create the same archives locally after building:
 

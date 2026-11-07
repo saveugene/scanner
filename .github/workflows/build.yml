@@ -2,6 +2,13 @@ name: Build
 
 on:
   pull_request:
+    # Release Please changes only these files; the main pipeline validates them.
+    # Do not create bot PR runs that GitHub holds for manual approval.
+    paths-ignore:
+      - CHANGELOG.md
+      - release-please-manifest.json
+      - src/Info.plist
+      - version.txt
   workflow_dispatch:
   workflow_call:
     inputs:
